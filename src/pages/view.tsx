@@ -3,6 +3,14 @@ import styles from '@/styles/View.module.css'
 import { Comic, Directory } from '@/_types'
 import { useEffect, useState } from 'react'
 
+function Carousel({ file, numPages }: { file: string, numPages: number }) {
+    return <div>{
+        [...Array(numPages)].map((_, i) => {
+            return <img width="200" className={styles.page} src={`/api/page?file=${file}&page=${i}`} />
+        })
+    }</div>
+}
+
 export default function View() {
     const [metadata, setMetadata] = useState<{ numPages: number } | null>(null)
     const [path, setPath] = useState<string[]>([])
@@ -18,6 +26,10 @@ export default function View() {
         return <div>"Loading"</div>
     }
 
+    const file = new URL(document.location.href).searchParams.get('file')
+    if (!file)
+        return <div>"No file"</div>
+
 
     return (
         <>
@@ -28,10 +40,8 @@ export default function View() {
                 <link rel="icon" href="/favicon.ico" />
             </Head>
             <main>
-                Comic {metadata.numPages}
-                {[...Array(metadata.numPages)].map((_, i) => {
-                    return <img width="200" className={styles.page} src={`/api/page?file=${new URL(document.location.href).searchParams.get('file')}&page=${i}`} />
-                })}
+
+                <Carousel file={file} numPages={metadata.numPages} />
             </main>
         </>
     )

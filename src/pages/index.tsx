@@ -41,6 +41,8 @@ export default function Home() {
   for (const p of path) {
     dir = dir.files.find((f) => f.name === p) as Directory
   }
+
+  const upButton = path.length > 0 ? <span onClick={up}> .. </span> : null
   return (
     <>
       <Head>
@@ -49,8 +51,8 @@ export default function Home() {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
-      <main className={`${styles.main} ${inter.className} `}>
-        <h1 className={styles.title}>{dir.name} <div onClick={up}>^</div></h1>
+      <main>
+        <h1 className={styles.title}>{upButton}{dir.name} </h1>
         <div className={styles.CardGrid}>
           {dir.files.map((file) => {
             let img = null

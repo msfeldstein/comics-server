@@ -2,31 +2,41 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import fs from 'fs/promises'
 import fsDirect from 'fs'
+import path from 'path'
 import * as unrar from 'node-unrar-js'
+import sharp from 'sharp'
 import { Directory } from '@/_types'
+import { MAIN_PATH, META_PATH } from '@/_paths'
 
 type Data = {
   contents: Directory
 }
 
-async function recursivelyFetchFiles(path: string, name: string): Promise<Directory> {
-  console.log("Recursing to directory", name)
-  let files = await fs.readdir(path)
+const mainRoot = MAIN_PATH
+const metaRoot = META_PATH
+
+async function recursivelyFetchFiles(curPath: string, name: string): Promise<Directory> {
+  const absPath = path.join(mainRoot, curPath)
+  console.log("Recursing to directory", absPath)
+  let files = await fs.readdir(absPath)
   let directory: Directory = { name, type: "directory", files: [] }
-  const thumbPath = path + "/" + "__THUMBS__"
-  if (!fsDirect.existsSync(thumbPath)) {
-    await fs.mkdir(thumbPath)
+  const thumbsPath = path.join(metaRoot, curPath)
+  if (!fsDirect.existsSync(thumbsPath)) {
+    await fs.mkdir(thumbsPath)
   }
   for (let file of files) {
-    let stat = await fs.stat(path + "/" + file)
-    if (stat.isDirectory() && file !== "__THUMBS__") {
-      directory.files.push(await recursivelyFetchFiles(path + "/" + file, file))
+    const filePath = path.join(curPath, file)
+    const absFilePath = path.join(mainRoot, filePath)
+    let stat = await fs.stat(absFilePath)
+    if (stat.isDirectory() && !file.startsWith("__")) {
+      directory.files.push(await recursivelyFetchFiles(filePath, file))
     } else if (file.endsWith(".cbz") || file.endsWith(".cbr")) {
       console.log("handling file", file)
       let valid = true
+      let numPages = 0
       try {
 
-        const fileContents = await fs.readFile(path + "/" + file)
+        const fileContents = await fs.readFile(absFilePath)
         const extractor = await unrar.createExtractorFromData({ data: Uint8Array.from(fileContents).buffer })
         const list = extractor.getFileList()
         let names = []
@@ -35,17 +45,26 @@ async function recursivelyFetchFiles(path: string, name: string): Promise<Direct
           names.push(fileHeader.name)
         }
         names = names.sort()
+        numPages = names.length
         const first = names[0]
         const extracted = extractor.extract({ files: [first] })
 
 
         const firstFile = extracted.files.next().value.extraction
-        await fs.writeFile(thumbPath + "/" + file + ".jpg", firstFile)
+
+        // Write out the full size image and a thumbnail
+        const comicMetaPath = path.join(thumbsPath, file)
+        if (!fsDirect.existsSync(comicMetaPath)) {
+          await fs.mkdir(comicMetaPath)
+        }
+        await fs.writeFile(path.join(comicMetaPath, "fullsize.jpg"), firstFile)
+        await sharp(firstFile).resize(320).toFile(path.join(comicMetaPath, "thumb.png"))
+
       } catch (e) {
         valid = false
-        console.error("Error unzipping", file)
+        console.error("Error unzipping", e, file)
       }
-      directory.files.push({ type: "comic", name: file, valid })
+      directory.files.push({ type: "comic", name: file, valid, numPages })
     }
   }
   return directory
@@ -55,8 +74,7 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<Data>
 ) {
-  const root = "/Users/michaelfeldstein/Ubooquity/Comics"
-  let contents = await recursivelyFetchFiles(root, "~")
-  await fs.writeFile(root + "/db.json", JSON.stringify(contents, null, 2))
+  let contents = await recursivelyFetchFiles("", "~")
+  await fs.writeFile(process.env.ROOT! + "/db.json", JSON.stringify(contents, null, 2))
   res.status(200).json({ contents })
 }

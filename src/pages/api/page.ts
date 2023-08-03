@@ -13,8 +13,9 @@ export default async function handler(
     res: NextApiResponse<Buffer>
 ) {
     const root = process.env.ROOT!
-
-    let contents = await fs.readFile(path.join(META_PATH, req.query.dir as string, req.query.file as string, "thumb.png"))
+    const file = req.query.file as string
+    const comicMetaPath = path.join(META_PATH, file, '__PAGES__')
+    let contents = await fs.readFile(path.join(comicMetaPath, req.query.page + ".jpg"))
     res.setHeader('Content-Type', 'image/jpg')
     res.status(200).send(contents)
 }

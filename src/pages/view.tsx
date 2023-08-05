@@ -2,14 +2,12 @@ import Head from 'next/head'
 import styles from '@/styles/View.module.css'
 import { useEffect, useState } from 'react'
 import { useRef } from 'react'
-import { useCallback } from 'react'
-import { useSpring, animated, useSprings } from '@react-spring/web'
-import { useDrag } from '@use-gesture/react'
+import { useSpring, animated } from '@react-spring/web'
+import { useDrag, useGesture } from '@use-gesture/react'
 
 function clamp(num: number, min: number, max: number) {
     return num <= min ? min : num >= max ? max : num
 }
-
 
 function Page({ file, index, x }: { file: string, index: number, x: number }) {
     return <div className={styles.carouselItem} style={{ left: x }} key={index}>
@@ -21,32 +19,55 @@ function Page({ file, index, x }: { file: string, index: number, x: number }) {
 function Carousel({ file, numPages }: { file: string, numPages: number }) {
     const [index, setIndex] = useState(1)
     const swipeIndex = useRef(0)
+    const isAnimating = useRef(false)
     const width = window.innerWidth
-    console.log({ index })
 
     const [props, api] = useSpring(() => ({
         x: 0,
+        config: {
+            tension: 500,
+            bounce: 0,
+            friction: 50,
+            clamp: true,
+        },
+        onStart: () => {
+            isAnimating.current = true
+        },
         onRest: (result) => {
+            isAnimating.current = false
+            // We have to post this task so we don't see a flicker by imperatively setting x to 0 before react re-renders
+            setTimeout(() => api.set({ x: 0 }), 1)
+            swipeIndex.current = 0
             if (result.value.x < 0) {
-                setIndex((index) => index + 1)
+                setIndex((index) => Math.min(index + 1, numPages - 1))
             }
             if (result.value.x > 0) {
-                setIndex((index) => index - 1)
+                setIndex((index) => Math.max(index - 1, 0))
             }
-            api.set({ x: 0 })
-        }
+        },
     }))
+    const bind = useGesture({
+        onDrag: ({ event, active, movement: [mx], direction: [xDir], cancel }) => {
+            if (active && Math.abs(mx) > width / 2) {
+                swipeIndex.current = clamp(swipeIndex.current + (xDir > 0 ? -1 : 1), -1, 1)
+                cancel()
+            }
+            api.start(i => {
+                const x = (i - swipeIndex.current) * width + (active ? mx : 0)
+                const scale = active ? 1 - Math.abs(mx) / width / 2 : 1
+                return { x, scale, display: 'block' }
+            })
+            event.stopPropagation()
+        },
+        onClick: ({ event, ...sharedState }) => {
+            // if (isAnimating.current) return
 
-    const bind = useDrag(({ active, movement: [mx], direction: [xDir], cancel }) => {
-        if (active && Math.abs(mx) > width / 2) {
-            swipeIndex.current = clamp(swipeIndex.current + (xDir > 0 ? -1 : 1), -1, 1)
-            cancel()
+            // if (event.screenX < width / 2) {
+            //     setIndex((index) => Math.max(index - 1, 0))
+            // } else if (event.screenX > width / 2) {
+            //     setIndex((index) => Math.min(index + 1, numPages - 1))
+            // }
         }
-        api.start(i => {
-            const x = (i - swipeIndex.current) * width + (active ? mx : 0)
-            const scale = active ? 1 - Math.abs(mx) / width / 2 : 1
-            return { x, scale, display: 'block' }
-        })
     })
 
     const left = index > 0 ? Page({ file, index: index - 1, x: -width }) : null

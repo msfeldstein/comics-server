@@ -2,8 +2,6 @@
     width: 100%;
     height: 100%;
     touch-action: none;
-    transform: scale(0.7);
-
 }
 
 .carousel {
@@ -19,7 +17,6 @@
     box-sizing: border-box;
     text-align: center;
     position: absolute;
-    border: 5px solid red;
     top: 0;
 }
 

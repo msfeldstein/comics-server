@@ -12,7 +12,7 @@ function clamp(num: number, min: number, max: number) {
 
 
 function Page({ file, index, x }: { file: string, index: number, x: number }) {
-    return <div className={styles.carouselItem}>
+    return <div className={styles.carouselItem} style={{ left: x }} key={index}>
         <img className={styles.carouselItemImage} src={`/api/page?file=${file}&page=${index}`} />
         <div className={styles.carouselItemOverlay}>{index}</div>
     </div>
@@ -22,19 +22,24 @@ function Carousel({ file, numPages }: { file: string, numPages: number }) {
     const [index, setIndex] = useState(1)
     const swipeIndex = useRef(0)
     const width = window.innerWidth
+    console.log({ index })
 
-    const [props, api] = useSprings(3, i => ({
-        x: i * width,
-        scale: 1,
-        display: 'block',
-        onRest: () => {
-            console.log("FINISH")
-        },
+    const [props, api] = useSpring(() => ({
+        x: 0,
+        onRest: (result) => {
+            if (result.value.x < 0) {
+                setIndex((index) => index + 1)
+            }
+            if (result.value.x > 0) {
+                setIndex((index) => index - 1)
+            }
+            api.set({ x: 0 })
+        }
     }))
 
     const bind = useDrag(({ active, movement: [mx], direction: [xDir], cancel }) => {
         if (active && Math.abs(mx) > width / 2) {
-            swipeIndex.current = clamp(swipeIndex.current + (xDir > 0 ? -1 : 1), 0, 3 - 1)
+            swipeIndex.current = clamp(swipeIndex.current + (xDir > 0 ? -1 : 1), -1, 1)
             cancel()
         }
         api.start(i => {
@@ -49,13 +54,9 @@ function Carousel({ file, numPages }: { file: string, numPages: number }) {
     const right = index < numPages - 1 ? Page({ file, index: index + 1, x: width }) : null
 
     return (
-        <div className={styles.carousel} onDragStart={e => e.preventDefault()}>
-            {props.map(({ x, scale }, i) => (
-                <animated.div className={styles.carouselItem} {...bind()} key={i} style={{ x, scale }}>
-                    {[left, center, right][i]}
-                </animated.div>
-            ))}
-        </div>
+        <animated.div className={styles.carousel} {...bind()} style={props} onDragStart={e => e.preventDefault()}>
+            {[left, center, right]}
+        </animated.div>
     )
 }
 

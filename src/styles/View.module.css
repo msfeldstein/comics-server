@@ -2,12 +2,13 @@
     width: 100%;
     height: 100%;
     touch-action: none;
+    transform: scale(0.7);
+
 }
 
 .carousel {
     width: 100%;
     height: 100%;
-    transform: scale(0.7);
     touch-action: none;
 }
 

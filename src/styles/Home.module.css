@@ -1,17 +1,17 @@
 .main {
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  align-items: center;
-  padding: 6rem;
-  min-height: 100vh;
+  height: 100%;
+  color: #E5E5E5;
+  padding: 30px;
 }
 
 .CardGrid {
+
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
-  row-gap: 20px;
+  gap: 30px;
 }
 
 .Card {

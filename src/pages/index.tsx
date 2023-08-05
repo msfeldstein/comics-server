@@ -27,14 +27,14 @@ export default function Home() {
       window.location.href = `/view?file=${newPath.join('/')}`
     } else {
       setPath(newPath)
-      window.history.pushState(null, '', `${window.location.pathname} #${newPath.join('/')} `)
+      window.history.pushState(null, '', `${window.location.pathname}#${newPath.join('/')}`)
     }
   }
 
   function up() {
     const newPath = [...path.slice(0, path.length - 1)]
     setPath(newPath)
-    window.history.pushState(null, '', `${window.location.pathname} #${newPath.join('/')} `)
+    window.history.pushState(null, '', `${window.location.pathname}#${newPath.join('/')} `)
   }
   // find the object in db that matches the path
   let dir = db
@@ -51,7 +51,7 @@ export default function Home() {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
-      <main>
+      <main className={styles.main}>
         <h1 className={styles.title}>{upButton}{dir.name} </h1>
         <div className={styles.CardGrid}>
           {dir.files.map((file) => {

@@ -19,6 +19,7 @@ export default async function handler(
     res: NextApiResponse<Data>
 ) {
     const file = req.query.file as string
+    console.log("PREPPING", file)
     const absFilePath = path.join(MAIN_PATH, file)
     const fileContents = await fs.readFile(absFilePath)
     const extractor = await unrar.createExtractorFromData({ data: Uint8Array.from(fileContents).buffer })
@@ -33,10 +34,10 @@ export default async function handler(
     const comicMetaPath = path.join(META_PATH, file, '__PAGES__')
     if (!fsDirect.existsSync(comicMetaPath)) {
         await fs.mkdir(comicMetaPath)
-    } else {
-        const existingFiles = await fs.readdir(comicMetaPath)
-        res.status(200).send({ success: true, numPages: existingFiles.length })
-        return
+        // } else {
+        //     const existingFiles = await fs.readdir(comicMetaPath)
+        //     res.status(200).send({ success: true, numPages: existingFiles.length })
+        //     return
     }
 
     let extractions: any = []

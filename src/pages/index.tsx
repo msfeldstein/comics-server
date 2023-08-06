@@ -43,6 +43,11 @@ export default function Home() {
   }
 
   const upButton = path.length > 0 ? <span onClick={up}> .. </span> : null
+
+  const folders = dir.files.filter((f) => f.type === 'directory')
+  const comics = dir.files.filter((f) => f.type === 'comic')
+  const divider = folders.length > 0 && comics.length > 0 ? <div className={styles.divider}></div> : null
+
   return (
     <>
       <Head>
@@ -54,12 +59,14 @@ export default function Home() {
       <main className={styles.main}>
         <h1 className={styles.title}>{upButton}{dir.name} </h1>
         <div className={styles.CardGrid}>
-          {dir.files.map((file) => {
-            let img = null
-            if (file.type === 'comic') {
-              img = <img width="200" src={`/api/thumb?dir=${[...path].join("/")}&file=${file.name}`} />
-            }
-            return (<div className={styles.Card} onClick={e => nav(file)}>{img}{file.name}</div>)
+          {folders.map((file) => {
+            return (<div className={styles.Card} onClick={e => nav(file)}>{file.name}</div>)
+          })}
+        </div>
+        {divider}
+        <div className={styles.CardGrid}>
+          {comics.map((file) => {
+            return (<div className={styles.Card} onClick={e => nav(file)}><img width="200" src={`/api/thumb?dir=${[...path].join("/")}&file=${file.name}`} />{file.name}</div>)
           })}
         </div>
       </main>

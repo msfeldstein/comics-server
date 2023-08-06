@@ -9,70 +9,101 @@ function clamp(num: number, min: number, max: number) {
     return num <= min ? min : num >= max ? max : num
 }
 
-function Page({ file, index, x }: { file: string, index: number, x: number }) {
+function Page({ file, index, x, label }: { file: string, index: number, x: number, label: string }) {
     return <div className={styles.carouselItem} style={{ left: x }} key={index}>
         <img className={styles.carouselItemImage} src={`/api/page?file=${file}&page=${index}`} />
-        <div className={styles.carouselItemOverlay}>{index}</div>
+        <div className={styles.carouselItemOverlay}> {label} {index}</div>
     </div>
 }
 
 function Carousel({ file, numPages }: { file: string, numPages: number }) {
-    const [index, setIndex] = useState(1)
+    const [index, setIndex] = useState(0)
     const swipeIndex = useRef(0)
+    const resetOnNextRender = useRef(false)
     const isAnimating = useRef(false)
     const width = window.innerWidth
+
+
+
 
     const [props, api] = useSpring(() => ({
         x: 0,
         config: {
-            tension: 500,
+            tension: 210,
             bounce: 0,
-            friction: 50,
+            friction: 20,
             clamp: true,
-        },
-        onStart: () => {
-            isAnimating.current = true
+            immediate: true,
         },
         onRest: (result) => {
-            isAnimating.current = false
-            // We have to post this task so we don't see a flicker by imperatively setting x to 0 before react re-renders
-            setTimeout(() => api.set({ x: 0 }), 1)
             swipeIndex.current = 0
             if (result.value.x < 0) {
+                resetOnNextRender.current = true
                 setIndex((index) => Math.min(index + 1, numPages - 1))
             }
             if (result.value.x > 0) {
+                resetOnNextRender.current = true
                 setIndex((index) => Math.max(index - 1, 0))
             }
+            isAnimating.current = false
         },
     }))
+
+    useEffect(() => {
+        if (!resetOnNextRender.current) return
+        resetOnNextRender.current = false
+        api.set({ x: 0 })
+    })
+
     const bind = useGesture({
+
         onDrag: ({ event, active, movement: [mx], direction: [xDir], cancel }) => {
-            if (active && Math.abs(mx) > width / 2) {
-                swipeIndex.current = clamp(swipeIndex.current + (xDir > 0 ? -1 : 1), -1, 1)
+            isAnimating.current = true
+            if (active && Math.abs(mx) > width / 5) {
+                // swipeIndex.current = clamp(swipeIndex.current + (xDir > 0 ? -1 : 1), -1, 1)
+                if (xDir > 0) {
+                    api.start((value) => { return { from: { x: value - width }, to: { x: 0 } } })
+                    setIndex((index) => Math.max(index - 1, 0))
+                } else {
+                    api.start((value) => { return { from: { x: value + width }, to: { x: 0 } } })
+                    setIndex((index) => Math.min(index + 1, numPages - 1))
+                }
                 cancel()
+            } else {
+
+                api.start(i => {
+                    console.log("START", i)
+                    const x = (i - swipeIndex.current) * width + (active ? mx : 0)
+                    const scale = active ? 1 - Math.abs(mx) / width / 2 : 1
+                    return { x, scale, display: 'block' }
+                })
             }
-            api.start(i => {
-                const x = (i - swipeIndex.current) * width + (active ? mx : 0)
-                const scale = active ? 1 - Math.abs(mx) / width / 2 : 1
-                return { x, scale, display: 'block' }
-            })
-            event.stopPropagation()
+
+        },
+        onDragEnd: () => {
+            console.log("ON END")
         },
         onClick: ({ event, ...sharedState }) => {
-            // if (isAnimating.current) return
-
-            // if (event.screenX < width / 2) {
-            //     setIndex((index) => Math.max(index - 1, 0))
-            // } else if (event.screenX > width / 2) {
-            //     setIndex((index) => Math.min(index + 1, numPages - 1))
-            // }
+            if (isAnimating.current) return
+            if (event.screenX < width / 2) {
+                setIndex((index) => Math.max(index - 1, 0))
+            } else if (event.screenX > width / 2) {
+                setIndex((index) => Math.min(index + 1, numPages - 1))
+            }
+        }
+    }, {
+        drag: {
+            preventScroll: true,
+            threshold: 10,
+            pointer: {
+                touch: true
+            },
         }
     })
 
-    const left = index > 0 ? Page({ file, index: index - 1, x: -width }) : null
-    const center = Page({ file, index, x: 0 })
-    const right = index < numPages - 1 ? Page({ file, index: index + 1, x: width }) : null
+    const left = index > 0 ? Page({ file, index: index - 1, x: -width, label: "LEFT" }) : null
+    const center = Page({ file, index, x: 0, label: "CENTER" })
+    const right = index < numPages - 1 ? Page({ file, index: index + 1, x: width, label: "RIGHT" }) : null
 
     return (
         <animated.div className={styles.carousel} {...bind()} style={props} onDragStart={e => e.preventDefault()}>

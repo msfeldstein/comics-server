@@ -30,7 +30,7 @@ async function recursivelyFetchFiles(curPath: string, name: string): Promise<Dir
     let stat = await fs.stat(absFilePath)
     if (stat.isDirectory() && !file.startsWith("__")) {
       directory.files.push(await recursivelyFetchFiles(filePath, file))
-    } else if (file.endsWith(".cbz") || file.endsWith(".cbr")) {
+    } else if (file.toLowerCase().endsWith(".cbz") || file.toLocaleLowerCase().endsWith(".cbr")) {
       console.log("handling file", file)
       let valid = true
       let numPages = 0
@@ -42,6 +42,10 @@ async function recursivelyFetchFiles(curPath: string, name: string): Promise<Dir
         let names = []
         for (let fileHeader of list.fileHeaders) {
           if (fileHeader.flags.directory) continue
+          if (!fileHeader.name.toLowerCase().endsWith("jpg")) {
+            console.log(fileHeader.name, "is not a jpg")
+            continue
+          }
           names.push(fileHeader.name)
         }
         names = names.sort()

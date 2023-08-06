@@ -1,4 +1,3 @@
-// Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import type { NextApiRequest, NextApiResponse } from 'next'
 import fs from 'fs/promises'
 import fsDirect from 'fs'
@@ -6,7 +5,7 @@ import path from 'path'
 import sharp from 'sharp'
 import { Directory } from '@/_types'
 import { MAIN_PATH, META_PATH } from '@/_paths'
-import decompress, { DecompressType } from './_decompressMetadata'
+import decompressMetadata, { DecompressType } from './_decompressMetadata'
 
 type Data = {
   contents: Directory
@@ -38,7 +37,7 @@ async function recursivelyFetchFiles(curPath: string, name: string): Promise<Dir
 
         const fileContents = await fs.readFile(absFilePath)
         const buffer = Uint8Array.from(fileContents)
-        const metadata = await decompress(buffer, DecompressType.FIRST_PAGE)
+        const metadata = await decompressMetadata(buffer, DecompressType.FIRST_PAGE)
         numPages = metadata.numPages
         const firstPage = metadata.firstPage
         // Write out the full size image and a thumbnail

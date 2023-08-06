@@ -6,57 +6,83 @@ type ComicMetadata = {
     firstPage: Uint8Array
 }
 
-async function decompressZip(buffer: Uint8Array, type: DecompressType): Promise<ComicMetadata> {
-    const zip = new AdmZip(Buffer.from(buffer))
-    const zipEntries = zip.getEntries()
-    console.log({ zipEntries })
-    let names = []
-    for (let zipEntry of zipEntries) {
-        if (zipEntry.isDirectory) continue
-        if (!zipEntry.entryName.toLowerCase().endsWith("jpg")) {
-            console.log(zipEntry.entryName, "is not a jpg")
-            continue
-        }
-        names.push(zipEntry.entryName)
-    }
-    names = names.sort()
-
-    const firstPage = zip.readFile(names[0])
-    if (!firstPage) throw new Error("Could not read first page")
-    return { firstPage, numPages: names.length }
+enum ArchiveType {
+    ZIP = 0,
+    RAR = 1,
 }
-
-async function decompressRar(buffer: Uint8Array, type: DecompressType): Promise<ComicMetadata> {
-    const extractor = await unrar.createExtractorFromData({ data: buffer })
-    const list = extractor.getFileList()
-    let names = []
-    for (let fileHeader of list.fileHeaders) {
-        if (fileHeader.flags.directory) continue
-        if (!fileHeader.name.toLowerCase().endsWith("jpg")) {
-            console.log(fileHeader.name, "is not a jpg")
-            continue
+export class Archive {
+    type: ArchiveType = ArchiveType.RAR
+    unzip?: AdmZip
+    unrar?: unrar.Extractor<Uint8Array>
+    static async init(buffer: Uint8Array) {
+        const archive = new Archive()
+        const text = new TextDecoder().decode(buffer.slice(0, 4))
+        if (text.startsWith("PK")) {
+            archive.type = ArchiveType.ZIP
+            archive.unzip = new AdmZip(Buffer.from(buffer))
+        } else if (text.startsWith("Rar!")) {
+            archive.type = ArchiveType.RAR
+            archive.unrar = await unrar.createExtractorFromData({ data: buffer })
+        } else {
+            console.error("Unknown header magic, falling back to rar", text)
+            archive.type = ArchiveType.RAR
+            archive.unrar = await unrar.createExtractorFromData({ data: buffer })
         }
-        names.push(fileHeader.name)
+        return archive
     }
-    names = names.sort()
 
-    const first = names[0]
-    const extracted = extractor.extract({ files: [first] })
+    getFilenames(): string[] {
+        let names: string[] = []
+        if (this.type == ArchiveType.ZIP) {
+            const zipEntries = this.unzip!.getEntries()
+            names = zipEntries.filter(ze => !ze.isDirectory).map(ze => ze.entryName)
+        } else {
+            const list = this.unrar!.getFileList()
+            for (let fileHeader of list.fileHeaders) {
+                if (fileHeader.flags.directory) continue
+                names.push(fileHeader.name)
+            }
+        }
 
+        return names.sort().filter(name => name.toLowerCase().endsWith("jpg"))
+    }
 
-    const firstPage = extracted.files.next().value.extraction
-    return { firstPage, numPages: names.length }
+    extract(filename: string): Uint8Array {
+        if (this.type == ArchiveType.ZIP) {
+            const file = this.unzip!.readFile(filename)
+            if (!file) throw new Error("Could not read file")
+            return Uint8Array.from(file)
+        } else {
+            const extracted = this.unrar!.extract({ files: [filename] })
+            return extracted.files.next().value.extraction
+        }
+    }
+
+    extractFiles(filenames: string[]): Uint8Array[] {
+        if (this.type == ArchiveType.ZIP) {
+            return filenames.map(name => this.unzip!.readFile(name)!)
+        } else {
+            const extracted = this.unrar!.extract({ files: filenames })
+            let extractions: any = []
+            for (const extractedFile of extracted.files) {
+                extractions.push(extractedFile)
+            }
+            return extractions.sort((a: any, b: any) => {
+                return a.fileHeader.name.localeCompare(b.fileHeader.name)
+            }).map((extractedFile: any) => extractedFile.extraction)
+        }
+
+    }
 }
 
 export enum DecompressType {
     FIRST_PAGE = 0,
     ALL_PAGES = 1,
 }
-export default async function decompress(buffer: Uint8Array, type: DecompressType): Promise<ComicMetadata> {
-    const text = new TextDecoder().decode(buffer.slice(0, 2))
-    if (text == "PK") {
-        return await decompressZip(buffer, type)
-    } else {
-        return await decompressRar(buffer, type)
-    }
+export default async function decompressMetadata(buffer: Uint8Array, type: DecompressType): Promise<ComicMetadata> {
+    const archive = await Archive.init(buffer)
+    let names = archive.getFilenames()
+    let firstName = names[0]
+    let firstPage = archive.extract(firstName)
+    return { numPages: names.length, firstPage }
 }

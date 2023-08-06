@@ -35,18 +35,6 @@ function Carousel({ file, numPages }: { file: string, numPages: number }) {
             clamp: true,
             immediate: true,
         },
-        onRest: (result) => {
-            swipeIndex.current = 0
-            if (result.value.x < 0) {
-                resetOnNextRender.current = true
-                setIndex((index) => Math.min(index + 1, numPages - 1))
-            }
-            if (result.value.x > 0) {
-                resetOnNextRender.current = true
-                setIndex((index) => Math.max(index - 1, 0))
-            }
-            isAnimating.current = false
-        },
     }))
 
     useEffect(() => {
@@ -57,10 +45,12 @@ function Carousel({ file, numPages }: { file: string, numPages: number }) {
 
     const bind = useGesture({
 
-        onDrag: ({ event, active, movement: [mx], direction: [xDir], cancel }) => {
+        onDrag: ({ active, movement: [mx], direction: [xDir], cancel }) => {
             isAnimating.current = true
             if (active && Math.abs(mx) > width / 5) {
                 // swipeIndex.current = clamp(swipeIndex.current + (xDir > 0 ? -1 : 1), -1, 1)
+                // In order to allow rapid paging, set the index here and offset the animation to animate back to center
+                // rather than waiting for the animation to finish before setting up the next page
                 if (xDir > 0) {
                     api.start((value) => { return { from: { x: value - width }, to: { x: 0 } } })
                     setIndex((index) => Math.max(index - 1, 0))
@@ -70,20 +60,14 @@ function Carousel({ file, numPages }: { file: string, numPages: number }) {
                 }
                 cancel()
             } else {
-
                 api.start(i => {
-                    console.log("START", i)
                     const x = (i - swipeIndex.current) * width + (active ? mx : 0)
                     const scale = active ? 1 - Math.abs(mx) / width / 2 : 1
                     return { x, scale, display: 'block' }
                 })
             }
-
         },
-        onDragEnd: () => {
-            console.log("ON END")
-        },
-        onClick: ({ event, ...sharedState }) => {
+        onClick: ({ event }) => {
             if (isAnimating.current) return
             if (event.screenX < width / 2) {
                 setIndex((index) => Math.max(index - 1, 0))

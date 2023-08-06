@@ -3,10 +3,10 @@ import type { NextApiRequest, NextApiResponse } from 'next'
 import fs from 'fs/promises'
 import fsDirect from 'fs'
 import path from 'path'
-import * as unrar from 'node-unrar-js'
 import sharp from 'sharp'
 import { Directory } from '@/_types'
 import { MAIN_PATH, META_PATH } from '@/_paths'
+import decompress, { DecompressType } from './_decompressMetadata'
 
 type Data = {
   contents: Directory
@@ -37,32 +37,17 @@ async function recursivelyFetchFiles(curPath: string, name: string): Promise<Dir
       try {
 
         const fileContents = await fs.readFile(absFilePath)
-        const extractor = await unrar.createExtractorFromData({ data: Uint8Array.from(fileContents).buffer })
-        const list = extractor.getFileList()
-        let names = []
-        for (let fileHeader of list.fileHeaders) {
-          if (fileHeader.flags.directory) continue
-          if (!fileHeader.name.toLowerCase().endsWith("jpg")) {
-            console.log(fileHeader.name, "is not a jpg")
-            continue
-          }
-          names.push(fileHeader.name)
-        }
-        names = names.sort()
-        numPages = names.length
-        const first = names[0]
-        const extracted = extractor.extract({ files: [first] })
-
-
-        const firstFile = extracted.files.next().value.extraction
-
+        const buffer = Uint8Array.from(fileContents)
+        const metadata = await decompress(buffer, DecompressType.FIRST_PAGE)
+        numPages = metadata.numPages
+        const firstPage = metadata.firstPage
         // Write out the full size image and a thumbnail
         const comicMetaPath = path.join(thumbsPath, file)
         if (!fsDirect.existsSync(comicMetaPath)) {
           await fs.mkdir(comicMetaPath)
         }
-        await fs.writeFile(path.join(comicMetaPath, "fullsize.jpg"), firstFile)
-        await sharp(firstFile).resize(320).toFile(path.join(comicMetaPath, "thumb.png"))
+        await fs.writeFile(path.join(comicMetaPath, "fullsize.jpg"), firstPage)
+        await sharp(firstPage).resize(320).toFile(path.join(comicMetaPath, "thumb.png"))
 
       } catch (e) {
         valid = false

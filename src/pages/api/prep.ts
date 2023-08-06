@@ -6,7 +6,7 @@ import { MAIN_PATH, META_PATH } from '@/_paths'
 import * as unrar from 'node-unrar-js'
 import sharp from 'sharp'
 import fsDirect from 'fs'
-import { Archive } from './_decompressMetadata'
+import { Archive } from './_archive'
 
 type Data = {
     success: boolean

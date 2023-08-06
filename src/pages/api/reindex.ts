@@ -5,7 +5,7 @@ import path from 'path'
 import sharp from 'sharp'
 import { Directory } from '@/_types'
 import { MAIN_PATH, META_PATH } from '@/_paths'
-import decompressMetadata, { DecompressType } from './_decompressMetadata'
+import { Archive } from './_archive'
 
 type Data = {
   contents: Directory
@@ -37,9 +37,10 @@ async function recursivelyFetchFiles(curPath: string, name: string): Promise<Dir
 
         const fileContents = await fs.readFile(absFilePath)
         const buffer = Uint8Array.from(fileContents)
-        const metadata = await decompressMetadata(buffer, DecompressType.FIRST_PAGE)
-        numPages = metadata.numPages
-        const firstPage = metadata.firstPage
+        const archive = await Archive.init(buffer)
+        const names = archive.getFilenames()
+        numPages = names.length
+        const firstPage = archive.extract(names[0])
         // Write out the full size image and a thumbnail
         const comicMetaPath = path.join(thumbsPath, file)
         if (!fsDirect.existsSync(comicMetaPath)) {

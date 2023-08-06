@@ -74,15 +74,3 @@ export class Archive {
 
     }
 }
-
-export enum DecompressType {
-    FIRST_PAGE = 0,
-    ALL_PAGES = 1,
-}
-export default async function decompressMetadata(buffer: Uint8Array, type: DecompressType): Promise<ComicMetadata> {
-    const archive = await Archive.init(buffer)
-    let names = archive.getFilenames()
-    let firstName = names[0]
-    let firstPage = archive.extract(firstName)
-    return { numPages: names.length, firstPage }
-}

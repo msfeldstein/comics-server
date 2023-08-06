@@ -15,7 +15,7 @@ export default function Home() {
       .then((res) => res.json())
       .then((data) => setDb(data))
       .catch((err) => console.error(err))
-  })
+  }, [])
 
   if (!db) {
     return <div>"Loading"</div>

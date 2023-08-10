@@ -1,16 +1,14 @@
 import Head from 'next/head'
-import Image from 'next/image'
-import { Inter } from 'next/font/google'
 import styles from '@/styles/Home.module.css'
 import { Comic, Directory } from '@/_types'
 import { useEffect, useState } from 'react'
-
-const inter = Inter({ subsets: ['latin'] })
 
 export default function Home() {
   const [db, setDb] = useState<Directory | null>(null)
   const [path, setPath] = useState<string[]>([])
   useEffect(() => {
+    if (window.location.hash.length < 2) return
+    console.log("Hash", { hash: window.location.hash })
     const initialPath = window.location.hash.substring(1).split('/').map(part => decodeURIComponent(part)) || []
     setPath(initialPath)
   }, [])

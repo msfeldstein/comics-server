@@ -40,13 +40,10 @@ function Carousel({ file, numPages }: { file: string, numPages: number }) {
             clamp: true,
             immediate: true,
         },
+        onRest: () => {
+            isAnimating.current = false
+        }
     }))
-
-    useEffect(() => {
-        if (!resetOnNextRender.current) return
-        resetOnNextRender.current = false
-        api.set({ x: 0 })
-    })
 
     const bind = useGesture({
 

@@ -10,6 +10,10 @@ const inter = Inter({ subsets: ['latin'] })
 export default function Home() {
   const [db, setDb] = useState<Directory | null>(null)
   const [path, setPath] = useState<string[]>([])
+  useEffect(() => {
+    const initialPath = window.location.hash.substring(1).split('/').map(part => decodeURIComponent(part)) || []
+    setPath(initialPath)
+  }, [])
   useEffect(function fetchDirectory() {
     fetch('/api/list')
       .then((res) => res.json())
@@ -38,6 +42,7 @@ export default function Home() {
   }
   // find the object in db that matches the path
   let dir = db
+  console.log(dir, path)
   for (const p of path) {
     dir = dir.files.find((f) => f.name === p) as Directory
   }

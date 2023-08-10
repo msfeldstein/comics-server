@@ -1,18 +1,14 @@
 import Head from 'next/head'
 import styles from '@/styles/View.module.css'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useRef } from 'react'
 import { useSpring, animated } from '@react-spring/web'
-import { useDrag, useGesture } from '@use-gesture/react'
+import { useGesture } from '@use-gesture/react'
 
-function clamp(num: number, min: number, max: number) {
-    return num <= min ? min : num >= max ? max : num
-}
-
-function Page({ file, index, x, label }: { file: string, index: number, x: number, label: string }) {
+function Page({ file, index, x }: { file: string, index: number, x: number }) {
     return <div className={styles.carouselItem} style={{ left: x }} key={index}>
         <img className={styles.carouselItemImage} src={`/api/page?file=${file}&page=${index}`} />
-        <div className={styles.carouselItemOverlay}> {label} {index}</div>
+        <div className={styles.carouselItemOverlay}>{index}</div>
     </div>
 }
 
@@ -20,14 +16,50 @@ function currentPageKey(file: string) {
     return `currentPage:${file}`
 }
 
+function convertFilePathToTitle(file: string) {
+
+    const fileName = file.substring(0, file.length - 4).split("/").pop()
+    return fileName
+    // if (!fileName) return file
+    // const titleParts = fileName.split(" ")
+    // if (isNaN(titleParts[titleParts.length - 1] as any)) {
+    //     return titleParts.join(" ")
+    // }
+    // titleParts[titleParts.length - 1] = `#${parseInt(titleParts[titleParts.length - 1])}`
+    // return titleParts.join(" ")
+}
+
+function Overlay({ file, index, hideOverlay, visible }: { file: string, index: number, visible: boolean, hideOverlay: () => void }) {
+    const title = convertFilePathToTitle(file)
+    const goBack = useCallback((e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
+        e.stopPropagation()
+        const path = file.split("/").slice(0, -1).join("")
+        const newLoc = window.location
+        newLoc.href = "/#" + path
+        console.log(newLoc)
+        debugger
+
+    }, [])
+    let className = [styles.overlay, !visible ? styles.hidden : null].join(" ")
+    console.log({ className, visible })
+    return <div className={className} onClick={hideOverlay}>
+        <div className={styles.overlayHeader}>
+            <div className={styles.overlayBack} onClick={goBack}></div>
+            <div className={styles.overlayTitle}>{title}</div>
+            <div className={styles.closeOverlay} onClick={hideOverlay}></div>
+        </div>
+    </div>
+}
+
 function Carousel({ file, numPages }: { file: string, numPages: number }) {
+    const [showOverlay, setShowOverlay] = useState(false)
+    const hideOverlay = useCallback(() => setShowOverlay(false), [])
     const savedPage = localStorage.getItem(currentPageKey(file))
     const [index, setIndex] = useState(savedPage ? parseInt(savedPage) : 0)
     useEffect(() => {
         localStorage.setItem(currentPageKey(file), index.toString())
     }, [index])
     const swipeIndex = useRef(0)
-    const resetOnNextRender = useRef(false)
     const isAnimating = useRef(false)
     const width = window.innerWidth
 
@@ -71,10 +103,12 @@ function Carousel({ file, numPages }: { file: string, numPages: number }) {
         },
         onClick: ({ event }) => {
             if (isAnimating.current) return
-            if (event.screenX < width / 2) {
+            if (event.screenX < width / 4) {
                 setIndex((index) => Math.max(index - 1, 0))
-            } else if (event.screenX > width / 2) {
+            } else if (event.screenX > width * 3 / 4) {
                 setIndex((index) => Math.min(index + 1, numPages - 1))
+            } else {
+                setShowOverlay((showOverlay) => !showOverlay)
             }
         }
     }, {
@@ -87,14 +121,16 @@ function Carousel({ file, numPages }: { file: string, numPages: number }) {
         }
     })
 
-    const left = index > 0 ? Page({ file, index: index - 1, x: -width, label: "LEFT" }) : null
-    const center = Page({ file, index, x: 0, label: "CENTER" })
-    const right = index < numPages - 1 ? Page({ file, index: index + 1, x: width, label: "RIGHT" }) : null
+    const left = index > 0 ? Page({ file, index: index - 1, x: -width }) : null
+    const center = Page({ file, index, x: 0 })
+    const right = index < numPages - 1 ? Page({ file, index: index + 1, x: width }) : null
 
-    return (
+    return (<>
         <animated.div className={styles.carousel} {...bind()} style={props} onDragStart={e => e.preventDefault()}>
             {[left, center, right]}
         </animated.div>
+        <Overlay file={file} index={index} hideOverlay={hideOverlay} visible={showOverlay} />
+    </>
     )
 }
 

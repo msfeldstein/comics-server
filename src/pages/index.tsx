@@ -8,7 +8,6 @@ export default function Home() {
   const [path, setPath] = useState<string[]>([])
   useEffect(() => {
     if (window.location.hash.length < 2) return
-    console.log("Hash", { hash: window.location.hash })
     const initialPath = window.location.hash.substring(1).split('/').map(part => decodeURIComponent(part)) || []
     setPath(initialPath)
   }, [])
@@ -42,6 +41,11 @@ export default function Home() {
   let dir = db
   console.log(dir, path)
   for (const p of path) {
+    if (!dir || !dir.files) {
+      dir = db
+      setPath([])
+      break
+    }
     dir = dir.files.find((f) => f.name === p) as Directory
   }
 
@@ -61,15 +65,15 @@ export default function Home() {
       </Head>
       <main className={styles.main}>
         <h1 className={styles.title}>{upButton}{dir.name} </h1>
-        <div className={styles.CardGrid}>
+        <div className={styles.DirectoryList}>
           {folders.map((file) => {
-            return (<div key={file.name} className={styles.Card} onClick={e => nav(file)}>{file.name}</div>)
+            return (<div key={file.name} className={styles.DirectoryItem} onClick={e => nav(file)}>{file.name}</div>)
           })}
         </div>
         {divider}
         <div className={styles.CardGrid}>
           {comics.map((file) => {
-            return (<div key={file.name} className={styles.Card} onClick={e => nav(file)}><img width="200" src={`/api/thumb?dir=${[...path].join("/")}&file=${file.name}`} />{file.name}</div>)
+            return (<div key={file.name} className={styles.Card} onClick={e => nav(file)}><img width="200" src={`/api/thumb?dir=${[...path].join("/")}&file=${file.name}`} /></div>)
           })}
         </div>
       </main>

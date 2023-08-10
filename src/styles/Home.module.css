@@ -6,12 +6,25 @@
   padding: 30px;
 }
 
+.DirectoryList {
+  width: 100%;
+  display: flex;
+  gap: 8px;
+  flex-direction: column;
+}
+
+.DirectoryItem {
+  font-size: 32px;
+
+}
+
 .CardGrid {
 
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
   gap: 30px;
+  padding-bottom: 30px;
 }
 
 .Card {

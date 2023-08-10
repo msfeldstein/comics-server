@@ -16,15 +16,20 @@ function Page({ file, index, x, label }: { file: string, index: number, x: numbe
     </div>
 }
 
+function currentPageKey(file: string) {
+    return `currentPage:${file}`
+}
+
 function Carousel({ file, numPages }: { file: string, numPages: number }) {
-    const [index, setIndex] = useState(0)
+    const savedPage = localStorage.getItem(currentPageKey(file))
+    const [index, setIndex] = useState(savedPage ? parseInt(savedPage) : 0)
+    useEffect(() => {
+        localStorage.setItem(currentPageKey(file), index.toString())
+    }, [index])
     const swipeIndex = useRef(0)
     const resetOnNextRender = useRef(false)
     const isAnimating = useRef(false)
     const width = window.innerWidth
-
-
-
 
     const [props, api] = useSpring(() => ({
         x: 0,

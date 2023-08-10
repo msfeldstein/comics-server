@@ -60,13 +60,13 @@ export default function Home() {
         <h1 className={styles.title}>{upButton}{dir.name} </h1>
         <div className={styles.CardGrid}>
           {folders.map((file) => {
-            return (<div className={styles.Card} onClick={e => nav(file)}>{file.name}</div>)
+            return (<div key={file.name} className={styles.Card} onClick={e => nav(file)}>{file.name}</div>)
           })}
         </div>
         {divider}
         <div className={styles.CardGrid}>
           {comics.map((file) => {
-            return (<div className={styles.Card} onClick={e => nav(file)}><img width="200" src={`/api/thumb?dir=${[...path].join("/")}&file=${file.name}`} />{file.name}</div>)
+            return (<div key={file.name} className={styles.Card} onClick={e => nav(file)}><img width="200" src={`/api/thumb?dir=${[...path].join("/")}&file=${file.name}`} />{file.name}</div>)
           })}
         </div>
       </main>

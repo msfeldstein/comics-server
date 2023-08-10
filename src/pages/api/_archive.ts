@@ -54,7 +54,9 @@ export class Archive {
             return Uint8Array.from(file)
         } else {
             const extracted = this.unrar!.extract({ files: [filename] })
-            return extracted.files.next().value.extraction
+            let extraction = extracted.files.next().value.extraction
+            while (!extracted.files.next().done) { }
+            return extraction
         }
     }
 

@@ -7,6 +7,15 @@ import { Directory } from '@/_types'
 import { MAIN_PATH, META_PATH } from '@/_paths'
 import { Archive } from './_archive'
 
+// include and initialize the rollbar library with your access token
+var Rollbar = require('rollbar')
+var rollbar = new Rollbar({
+  accessToken: process.env.ROLLBAR_TOKEN,
+  captureUncaught: true,
+  captureUnhandledRejections: true,
+})
+
+
 type Data = {
   contents: Directory
 }
@@ -14,7 +23,7 @@ type Data = {
 const mainRoot = MAIN_PATH
 const metaRoot = META_PATH
 
-async function recursivelyFetchFiles(curPath: string, name: string): Promise<Directory> {
+export async function recursivelyFetchFiles(curPath: string, name: string): Promise<Directory> {
   const absPath = path.join(mainRoot, curPath)
   console.log("Recursing to directory", absPath)
   let files = await fs.readdir(absPath)
@@ -49,9 +58,10 @@ async function recursivelyFetchFiles(curPath: string, name: string): Promise<Dir
         await fs.writeFile(path.join(comicMetaPath, "fullsize.jpg"), firstPage)
         await sharp(firstPage).resize(320).toFile(path.join(comicMetaPath, "thumb.png"))
 
-      } catch (e) {
+      } catch (e: any) {
         valid = false
         console.error("Error unzipping", e, file)
+        rollbar.error("Error unzipping", e, { file })
       }
       directory.files.push({ type: "comic", name: file, valid, numPages })
     }
@@ -64,6 +74,7 @@ export default async function handler(
   res: NextApiResponse<Data>
 ) {
   let contents = await recursivelyFetchFiles("", "~")
+
   await fs.writeFile(process.env.ROOT! + "/db.json", JSON.stringify(contents, null, 2))
   res.status(200).json({ contents })
 }

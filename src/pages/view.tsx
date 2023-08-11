@@ -146,12 +146,12 @@ export default function View() {
     }, [])
 
     if (!metadata) {
-        return <div>"Loading"</div>
+        return <div>Loading</div>
     }
 
     const file = new URL(document.location.href).searchParams.get('file')
     if (!file)
-        return <div>"No file"</div>
+        return <div>No file</div>
 
 
     return (

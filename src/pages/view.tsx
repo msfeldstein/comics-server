@@ -7,7 +7,7 @@ import { useGesture } from '@use-gesture/react'
 
 function Page({ file, index, x }: { file: string, index: number, x: number }) {
     return <div className={styles.carouselItem} style={{ left: x }} key={index}>
-        <img className={styles.carouselItemImage} src={`/api/page?file=${file}&page=${index}`} />
+        <img alt="" className={styles.carouselItemImage} src={`/api/page?file=${file}&page=${index}`} />
         <div className={styles.carouselItemOverlay}>{index}</div>
     </div>
 }

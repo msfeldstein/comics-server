@@ -19,7 +19,7 @@ export default function Home() {
   }, [])
 
   if (!db) {
-    return <div>"Loading"</div>
+    return <div>Loading</div>
   }
 
   function nav(file: Directory | Comic) {
@@ -73,7 +73,7 @@ export default function Home() {
         {divider}
         <div className={styles.CardGrid}>
           {comics.map((file) => {
-            return (<div key={file.name} className={styles.Card} onClick={e => nav(file)}><img width="200" src={`/api/thumb?dir=${[...path].join("/")}&file=${file.name}`} /></div>)
+            return (<div key={file.name} className={styles.Card} onClick={e => nav(file)}><img alt="" width="200" src={`/api/thumb?dir=${[...path].join("/")}&file=${file.name}`} /></div>)
           })}
         </div>
       </main>
